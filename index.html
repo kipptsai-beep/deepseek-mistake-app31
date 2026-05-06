@@ -56,7 +56,7 @@
     // ================= 唯一的一次 Supabase 初始化 =================
     const SUPABASE_URL = "https://rsuguwhgzyyvhlehpqqu.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzdWd1d2hnenl5dmhsZWhwcXF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5ODU4NDUsImV4cCI6MjA5MzU2MTg0NX0.SX9ixJYye0GNdKvcJ5c3FZAeN9s1B_oX7XnU8xwbkR8";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // DOM 元素
     const loginView = document.getElementById('loginView');
