@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>智慧錯題本｜極簡完整版</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #f0f2f5; font-family: system-ui, -apple-system; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .card { background: white; border-radius: 32px; padding: 24px; max-width: 400px; width: 90%; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { text-align: center; margin-bottom: 20px; }
+        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 40px; border: 1px solid #cbd5e1; font-size: 16px; }
+        button { background: #3b82f6; color: white; border: none; font-weight: bold; cursor: pointer; }
+        .secondary { background: #e2e8f0; color: #1e293b; }
+        .message { margin-top: 12px; font-size: 14px; text-align: center; }
+        .error { color: #c62828; }
+        .success { color: #15803d; }
+        .hidden { display: none; }
+        .mistake-item { border-bottom: 1px solid #e2e8f0; padding: 12px 0; }
+        .mistake-item strong { display: block; margin-bottom: 6px; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <!-- 登入區 -->
+    <div id="loginView" class="card">
+        <h2>📚 智慧錯題本</h2>
+        <input type="email" id="email" placeholder="電子郵件">
+        <input type="password" id="password" placeholder="密碼">
+        <button id="loginBtn">登入</button>
+        <button id="showRegBtn" class="secondary">註冊新帳號</button>
+        <div id="loginMsg" class="message"></div>
+    </div>
+
+    <!-- 註冊區 -->
+    <div id="regView" class="card hidden">
+        <h2>📝 註冊</h2>
+        <input type="email" id="regEmail" placeholder="電子郵件">
+        <input type="password" id="regPassword" placeholder="密碼 (至少6碼)">
+        <button id="regBtn">註冊</button>
+        <button id="backBtn" class="secondary">返回登入</button>
+        <div id="regMsg" class="message"></div>
+    </div>
+
+    <!-- 錯題本主區 -->
+    <div id="appView" class="card hidden">
+        <h2>📖 我的錯題本</h2>
+        <div id="mistakeList">載入中...</div>
+        <button id="logoutBtn" class="secondary" style="margin-top:20px;">登出</button>
+        <button id="addTestBtn" style="margin-top:12px;">➕ 新增測試錯題</button>
+    </div>
+</div>
+
+<script>
+    // ================= 唯一的一次 Supabase 初始化 =================
+    const SUPABASE_URL = "https://rsuguwhgzyyvhlehpqqu.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzdWd1d2hnenl5dmhsZWhwcXF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5ODU4NDUsImV4cCI6MjA5MzU2MTg0NX0.SX9ixJYye0GNdKvcJ5c3FZAeN9s1B_oX7XnU8xwbkR8";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // DOM 元素
+    const loginView = document.getElementById('loginView');
+    const regView = document.getElementById('regView');
+    const appView = document.getElementById('appView');
+    const loginBtn = document.getElementById('loginBtn');
+    const showRegBtn = document.getElementById('showRegBtn');
+    const regBtn = document.getElementById('regBtn');
+    const backBtn = document.getElementById('backBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const addTestBtn = document.getElementById('addTestBtn');
+    const mistakeListDiv = document.getElementById('mistakeList');
+    const loginMsg = document.getElementById('loginMsg');
+    const regMsg = document.getElementById('regMsg');
+
+    // 切換視圖
+    showRegBtn.onclick = () => { loginView.classList.add('hidden'); regView.classList.remove('hidden'); };
+    backBtn.onclick = () => { regView.classList.add('hidden'); loginView.classList.remove('hidden'); };
+
+    // 註冊邏輯
+    regBtn.onclick = async () => {
+        const email = document.getElementById('regEmail').value.trim();
+        const pwd = document.getElementById('regPassword').value;
+        regMsg.innerText = '';
+        if (!email || !pwd) { regMsg.innerText = '請填寫郵箱和密碼'; regMsg.className = 'message error'; return; }
+        if (pwd.length < 6) { regMsg.innerText = '密碼至少6碼'; regMsg.className = 'message error'; return; }
+        regMsg.innerText = '註冊中...';
+        regMsg.className = 'message';
+        const { error } = await supabase.auth.signUp({ email, password: pwd });
+        if (error) {
+            regMsg.innerText = '❌ 註冊失敗：' + error.message;
+            regMsg.className = 'message error';
+        } else {
+            regMsg.innerText = '✅ 註冊成功！請檢查郵箱驗證信（若關閉驗證，可直接登入）';
+            regMsg.className = 'message success';
+        }
+    };
+
+    // 登入邏輯
+    loginBtn.onclick = async () => {
+        const email = document.getElementById('email').value.trim();
+        const pwd = document.getElementById('password').value;
+        loginMsg.innerText = '';
+        if (!email || !pwd) { loginMsg.innerText = '請填寫郵箱和密碼'; loginMsg.className = 'message error'; return; }
+        loginMsg.innerText = '登入中...';
+        loginMsg.className = 'message';
+        const { error } = await supabase.auth.signInWithPassword({ email, password: pwd });
+        if (error) {
+            loginMsg.innerText = '❌ 登入失敗：' + error.message;
+            loginMsg.className = 'message error';
+        } else {
+            loginMsg.innerText = '✅ 登入成功！';
+            loginMsg.className = 'message success';
+            setTimeout(() => {
+                loginView.classList.add('hidden');
+                appView.classList.remove('hidden');
+                loadMistakes();
+            }, 800);
+        }
+    };
+
+    // 登出
+    logoutBtn.onclick = async () => {
+        await supabase.auth.signOut();
+        appView.classList.add('hidden');
+        loginView.classList.remove('hidden');
+        document.getElementById('email').value = '';
+        document.getElementById('password').value = '';
+        loginMsg.innerText = '';
+    };
+
+    // 載入錯題
+    async function loadMistakes() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data, error } = await supabase.from('mistakes').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+        if (error) {
+            mistakeListDiv.innerText = '載入失敗：' + error.message;
+            return;
+        }
+        if (!data.length) {
+            mistakeListDiv.innerHTML = '<div style="text-align:center; padding:20px;">📭 暫無錯題，點「新增測試錯題」</div>';
+            return;
+        }
+        mistakeListDiv.innerHTML = data.map(item => `
+            <div class="mistake-item">
+                <strong>📌 ${escapeHtml(item.question)}</strong>
+                ✅ 正確答案：${escapeHtml(item.answer)}<br>
+                <small>📅 ${item.date} ｜ 錯 ${item.wrong_count} 次</small>
+            </div>
+        `).join('');
+    }
+
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+
+    // 新增測試錯題
+    addTestBtn.onclick = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const testId = Date.now().toString();
+        const { error } = await supabase.from('mistakes').insert({
+            id: testId,
+            user_id: user.id,
+            subj: 'math',
+            question: '3 + 5 = ?',
+            answer: '8',
+            date: new Date().toISOString().slice(0,10),
+            wrong_count: 1
+        });
+        if (error) alert('新增失敗：' + error.message);
+        else loadMistakes();
+    };
+
+    // 檢查是否已經登入
+    (async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            loginView.classList.add('hidden');
+            appView.classList.remove('hidden');
+            loadMistakes();
+        } else {
+            loginView.classList.remove('hidden');
+            appView.classList.add('hidden');
+        }
+    })();
+</script>
+</body>
+</html>
